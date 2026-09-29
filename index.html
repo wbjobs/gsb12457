@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie 迁移工具 · localStorage / IndexedDB</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <h1>Cookie → localStorage / IndexedDB 迁移工具</h1>
+    <p class="subtitle">读取现有 Cookie，检测浏览器兼容性，安全迁移并支持降级与回滚</p>
+  </header>
+
+  <main>
+    <section class="card" id="detect-section">
+      <div class="card-head">
+        <h2>1. 浏览器兼容性检测</h2>
+        <button id="btn-detect" class="btn">开始检测</button>
+      </div>
+      <p class="hint">检测 Cookie 大小上限、SameSite、分区（CHIPS）、第三方 Cookie、localStorage / IndexedDB 可用性。大 Cookie 探测在后台分片执行，不阻塞页面。</p>
+      <table class="grid" id="detect-table">
+        <thead>
+          <tr><th>检测项</th><th>结果</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="3" class="empty">尚未检测</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="cookie-section">
+      <div class="card-head">
+        <h2>2. 当前 Cookie</h2>
+        <div>
+          <button id="btn-add-demo" class="btn btn-ghost">生成测试 Cookie</button>
+          <button id="btn-refresh" class="btn">刷新列表</button>
+        </div>
+      </div>
+      <p class="hint">出于安全限制，JS 只能读到 Cookie 的键和值；Expires / Path / Domain / HttpOnly / Secure 等属性浏览器不暴露，显示为「不可读」。</p>
+      <table class="grid" id="cookie-table">
+        <thead>
+          <tr><th>键</th><th>值</th><th>大小</th><th>属性</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" class="empty">暂无 Cookie</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card" id="migrate-section">
+      <div class="card-head">
+        <h2>3. 迁移</h2>
+      </div>
+      <div class="controls">
+        <label>目标存储：
+          <select id="target-select">
+            <option value="localStorage">localStorage</option>
+            <option value="indexedDB">IndexedDB</option>
+          </select>
+        </label>
+        <label><input type="checkbox" id="chk-delete-cookie"> 迁移成功后删除原 Cookie</label>
+        <label><input type="checkbox" id="chk-auto-fallback" checked> 目标不可用时自动降级</label>
+      </div>
+      <div class="controls">
+        <button id="btn-migrate" class="btn btn-primary">开始迁移</button>
+        <button id="btn-abort" class="btn btn-danger" disabled>中断迁移</button>
+        <button id="btn-rollback" class="btn btn-warn" disabled>回滚</button>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+        <div class="stats">
+          <span>总数：<b id="stat-total">0</b></span>
+          <span>成功：<b id="stat-success" class="ok">0</b></span>
+          <span>失败：<b id="stat-fail" class="err">0</b></span>
+          <span>降级：<b id="stat-fallback" class="warn">0</b></span>
+          <span id="stat-status">空闲</span>
+        </div>
+      </div>
+
+      <h3>迁移日志</h3>
+      <ul id="log" class="log"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <p>纯原生实现：Cookie / localStorage / IndexedDB / Feature Detection / DOM / Web Worker，无任何框架。</p>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
