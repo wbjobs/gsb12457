@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>CMT Third-Party Probe</title>
+</head>
+<body>
+<p style="font:12px sans-serif;color:#666">CMT third-party storage probe. This page should be hosted on a
+<strong>different site</strong> than the migration tool.</p>
+<script>
+/* 被迁移工具以 iframe 形式跨站加载，逐项实测 Cookie / localStorage / IndexedDB，
+ * 然后 postMessage 回结果。只响应明确的窗口来源，结果仅含布尔值。
+ */
+(function () {
+  'use strict';
+  var RESULT = { __cmt: 'probe-result', cookies: null, localStorage: null, indexedDB: null };
+
+  function testCookie() {
+    return new Promise(function (resolve) {
+      var name = '__cmt_3p_cookie__';
+      try {
+        document.cookie = name + '=1; path=/; SameSite=None; Secure';
+        var ok = document.cookie.indexOf(name + '=1') !== -1;
+        document.cookie = name + '=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        resolve(ok);
+      } catch (e) { resolve(false); }
+    });
+  }
+
+  function testLocalStorage() {
+    try {
+      localStorage.setItem('__cmt_3p_ls__', '1');
+      var ok = localStorage.getItem('__cmt_3p_ls__') === '1';
+      localStorage.removeItem('__cmt_3p_ls__');
+      return Promise.resolve(ok);
+    } catch (e) { return Promise.resolve(false); }
+  }
+
+  function testIndexedDB() {
+    return new Promise(function (resolve) {
+      if (!indexedDB) { resolve(false); return; }
+      var done = false;
+      var timer = setTimeout(finish, 2000, false);
+      function finish(v) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        try { indexedDB.deleteDatabase('__cmt_3p_idb__'); } catch (e) {}
+        resolve(v);
+      }
+      try {
+        var req = indexedDB.open('__cmt_3p_idb__');
+        req.onupgradeneeded = function () { req.result.createObjectStore('p'); };
+        req.onsuccess = function () {
+          req.result.close();
+          finish(true);
+        };
+        req.onerror = function () { finish(false); };
+        req.onblocked = function () { finish(false); };
+      } catch (e) { finish(false); }
+    });
+  }
+
+  function send(targetOrigin) {
+    testCookie().then(function (c) {
+      RESULT.cookies = c;
+      return testLocalStorage();
+    }).then(function (l) {
+      RESULT.localStorage = l;
+      return testIndexedDB();
+    }).then(function (i) {
+      RESULT.indexedDB = i;
+      parent.postMessage(RESULT, targetOrigin);
+    });
+  }
+
+  /* 父页面 postMessage 发起握手：{ __cmt:'probe-start' }，用其 origin 限定回传目标 */
+  window.addEventListener('message', function (ev) {
+    var d = ev.data;
+    if (!d || d.__cmt !== 'probe-start') return;
+    if (window.parent === window) return;
+    send(ev.origin);
+  });
+
+  /* 无握手也尝试一次：向所有父来源回传（部署到可信专用域名时可用） */
+  window.addEventListener('load', function () {
+    setTimeout(function () {
+      try {
+        if (document.referrer) {
+          var origin = new URL(document.referrer).origin;
+          send(origin);
+        }
+      } catch (e) {}
+    }, 100);
+  });
+})();
+</script>
+</body>
+</html>

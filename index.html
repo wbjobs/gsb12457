@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie → localStorage / IndexedDB 迁移工具</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Cookie 迁移工具</h1>
+    <p class="subtitle">读取 Cookie · 能力检测 · 迁移 / 降级 / 回滚（纯原生 JS，无框架）</p>
+  </header>
+
+  <main class="layout">
+    <!-- 左列：Cookie 列表与操作 -->
+    <section class="panel">
+      <div class="panel-head">
+        <h2>① 现有 Cookie</h2>
+        <div class="btn-row">
+          <button id="btn-refresh" class="btn">刷新读取</button>
+          <button id="btn-seed" class="btn btn-ghost">写入示例 Cookie</button>
+        </div>
+      </div>
+      <div id="cookie-meta" class="muted small"></div>
+      <div class="table-wrap">
+        <table id="cookie-table">
+          <thead>
+            <tr>
+              <th><input type="checkbox" id="check-all" checked title="全选"></th>
+              <th>键</th><th>值</th><th>大小</th><th>属性</th><th>状态</th>
+            </tr>
+          </thead>
+          <tbody id="cookie-body"></tbody>
+        </table>
+      </div>
+
+      <h2 class="mt">② 迁移配置</h2>
+      <div class="form-grid">
+        <label>目标存储
+          <select id="cfg-target">
+            <option value="auto" selected>自动降级（IndexedDB → localStorage → 内存）</option>
+            <option value="indexedDB">仅 IndexedDB（失败再降级）</option>
+            <option value="localStorage">仅 localStorage（失败再降级）</option>
+            <option value="memory">仅内存（最保守兜底）</option>
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" id="cfg-worker" checked> 使用 Web Worker 写 IndexedDB</label>
+        <label class="check"><input type="checkbox" id="cfg-delete"> 迁移成功后删除源 Cookie</label>
+        <label class="check"><input type="checkbox" id="cfg-failfast"> failFast（遇错立即停止）</label>
+        <label>中断模拟：迁移前 N 条后崩溃
+          <input type="number" id="cfg-crash" min="0" max="999" value="0">
+        </label>
+        <label>第三方探测页 URL（跨域部署 probes/third-party.html）
+          <input type="text" id="cfg-probe-url" placeholder="https://other-origin.example/probes/third-party.html">
+        </label>
+      </div>
+      <div class="btn-row mt">
+        <button id="btn-detect" class="btn btn-primary">检测浏览器能力</button>
+        <button id="btn-migrate" class="btn btn-primary">开始迁移</button>
+        <button id="btn-abort" class="btn btn-warn" disabled>中断迁移</button>
+        <button id="btn-resume" class="btn">继续上次中断</button>
+        <button id="btn-rollback" class="btn btn-danger">回滚上次迁移</button>
+        <button id="btn-verify" class="btn btn-ghost">校验目标数据一致性</button>
+      </div>
+    </section>
+
+    <!-- 右列：能力检测与进度 -->
+    <aside class="panel">
+      <h2>③ 浏览器能力</h2>
+      <div id="caps" class="caps">
+        <p class="muted small">点击“检测浏览器能力”后展示 Cookie 大小、SameSite、分区、第三方 Cookie 与存储支持情况。</p>
+      </div>
+
+      <h2 class="mt">④ 迁移进度</h2>
+      <div class="progress-wrap">
+        <progress id="progress" value="0" max="100"></progress>
+        <span id="progress-text" class="small">0 / 0</span>
+      </div>
+      <div id="summary" class="summary muted small">尚未开始迁移</div>
+
+      <h2 class="mt">⑤ 历史迁移（日志）</h2>
+      <ul id="runs" class="runs"></ul>
+
+      <h2 class="mt">事件日志</h2>
+      <div id="logs" class="logs small" aria-live="polite"></div>
+    </aside>
+  </main>
+
+  <footer class="muted small footer">
+    HttpOnly Cookie 对 JavaScript 不可见，无法由本工具迁移，需由服务端配合。第三方 Cookie/存储的真实状态需把
+    <code>probes/third-party.html</code> 部署到另一个源并填入上方 URL。
+  </footer>
+
+  <script src="js/util.js"></script>
+  <script src="js/cookie.js"></script>
+  <script src="js/feature-detect.js"></script>
+  <script src="js/idb-core.js"></script>
+  <script src="js/storage-local.js"></script>
+  <script src="js/storage-idb.js"></script>
+  <script src="js/storage-memory.js"></script>
+  <script src="js/migrator.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
